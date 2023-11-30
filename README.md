@@ -10,6 +10,7 @@ NOTE: This tool is a work in progress. Some features may not be working or non-e
   - Calculate network details such as network address, broadcast address, and available hosts within a subnet.
   - Validate IPv4 addresses.
   - Perform subnetting calculations.
+  - Perform route summarization calculations.
   
 - **IPv6 Operations:**
   - Shorten IPv6 addresses using the compressed representation.
@@ -34,6 +35,11 @@ Run the ip-calculator executable with appropriate command-line arguments to util
 IPv4 Information
 ```bash
 ./ip-calculator -ipv4 192.168.0.0/24 --info
+```
+
+IPv4 Route Summarization
+```bash
+./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3
 ```
 
 ## Contributing

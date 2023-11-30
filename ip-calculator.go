@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -104,10 +105,31 @@ func (v *IPv4Value) GetUsableHostRange() (net.IP, net.IP, error) {
 	return hostMin, hostMax, nil
 }
 
+func IP4toInt(IPv4Address net.IP) int64 {
+	IPv4Int := big.NewInt(0)
+	IPv4Int.SetBytes(IPv4Address.To4())
+	return IPv4Int.Int64()
+}
+
+func IP4CidrToBinary(IPv4Address string) string {
+	binaryAddress := strconv.FormatInt(IP4toInt(net.ParseIP(IPv4Address)), 2)
+	if len(binaryAddress) < 32 {
+		var padding string
+		for j := 0; j < 32-len(binaryAddress); j++ {
+			padding = padding + "0"
+		}
+		binaryAddress = padding + binaryAddress
+	}
+	return binaryAddress
+}
+
 func main() {
 	var ipv4 IPv4Value
+	var routesToSum string
+
 	flag.Var(&ipv4, "ipv4", "IPv4 address with netmask (e.g., 192.168.1.1/24)")
 	info := flag.Bool("info", false, "IP information")
+	flag.StringVar(&routesToSum, "summary-route", "", "Networks / IP addresses to be summarized in a single route separated by commas")
 
 	flag.Parse()
 
@@ -141,5 +163,38 @@ func main() {
 		fmt.Printf("%-30s : %s\n", "Wildcard Mask", wildCardMask)
 
 		return
+	}
+
+	if routesToSum != "" {
+		routes := strings.Split(routesToSum, ",")
+
+		if len(routes) == 1 {
+			fmt.Println("Please enter more than one route to summarize!")
+			return
+		}
+
+		var binaryRoutes []string
+		for _, route := range routes {
+			binaryRoutes = append(binaryRoutes, IP4CidrToBinary(route))
+		}
+
+		var summaryNetmask int
+		for i := 0; i < 32; i++ {
+			bitsSum := 0
+			for _, binaryRoute := range binaryRoutes {
+				if binaryRoute[i] != 48 {
+					bitsSum++
+				}
+			}
+			if bitsSum != 0 && bitsSum != len(binaryRoutes) {
+				summaryNetmask = i
+				break
+			}
+		}
+
+		var summaryRoute IPv4Value
+		summaryRoute.Set(routes[0] + "/" + strconv.Itoa(summaryNetmask))
+		summaryRoute.ip = summaryRoute.GetNetworkAddress()
+		fmt.Println("Summarized Network Address:", fmt.Sprintf("%s/%d", summaryRoute.ip, summaryNetmask))
 	}
 }
