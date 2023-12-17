@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 	"net"
@@ -123,6 +124,11 @@ func IP4CidrToBinary(IPv4Address string) string {
 	return binaryAddress
 }
 
+func isValidIP(ip string) bool {
+	parsedIP := net.ParseIP(ip)
+	return parsedIP != nil && strings.Count(ip, ".") == 3
+}
+
 func main() {
 	var ipv4 IPv4Value
 	var routesToSum string
@@ -168,6 +174,12 @@ func main() {
 	if routesToSum != "" {
 		routes := strings.Split(routesToSum, ",")
 
+		for _, route := range routes {
+			if !isValidIP(route) {
+				log.Fatal("Invalid network to summarize!")
+			}
+		}
+
 		if len(routes) == 1 {
 			fmt.Println("Please enter more than one route to summarize!")
 			return
@@ -196,5 +208,9 @@ func main() {
 		summaryRoute.Set(routes[0] + "/" + strconv.Itoa(summaryNetmask))
 		summaryRoute.ip = summaryRoute.GetNetworkAddress()
 		fmt.Println("Summarized Network Address:", fmt.Sprintf("%s/%d", summaryRoute.ip, summaryNetmask))
+
+		return
 	}
+
+	fmt.Println("Error: Insufficient Parameters")
 }
