@@ -42,6 +42,12 @@ IPv4 Route Summarization
 ./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3
 ```
 
+IPv4 VLSM Subnetting
+```bash
+./ip-calculator --ipv4=10.10.0.0/16 --vlsm 10,20,30,40
+```
+__NOTE__: The number of hosts should not include the broadcast and the network address. 
+
 ## Contributing
 
 Contributions are welcome! If you find any bugs, have suggestions for improvements, or wish to add new features, feel free to open an issue or create a pull request.
