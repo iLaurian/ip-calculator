@@ -48,6 +48,16 @@ IPv4 VLSM Subnetting
 ```
 __NOTE__: The number of hosts should not include the broadcast and the network address. 
 
+### Command line flag syntax
+
+The following forms are permitted:
+```bash
+-flag
+--flag   // double dashes are also permitted
+-flag=x
+-flag x  // non-boolean flags only
+```
+
 ## Contributing
 
 Contributions are welcome! If you find any bugs, have suggestions for improvements, or wish to add new features, feel free to open an issue or create a pull request.
