@@ -181,7 +181,7 @@ func showUsage() {
 	fmt.Println("Usage: ip-calculator [options]")
 	fmt.Println("Options:")
 	flag.PrintDefaults()
-	fmt.Println("\nExamples:")
+	fmt.Println("\nUsage:")
 	fmt.Println("Get help: \n\t./ip-calculator -h\n\t./ip-calculator --help")
 	fmt.Println("Get IPv4 Information: \n\t./ip-calculator -ipv4 192.168.0.0/24 --info")
 	fmt.Println("IPv4 Route Summarization: \n\t./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3")
