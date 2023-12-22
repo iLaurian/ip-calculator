@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -16,6 +17,12 @@ import (
 type IPv4Value struct {
 	ip      net.IP
 	netmask net.IPMask
+}
+
+type Subnet struct {
+	IP       net.IP
+	MaskSize int
+	Hosts    int
 }
 
 func (v *IPv4Value) String() string {
@@ -129,13 +136,56 @@ func isValidIP(ip string) bool {
 	return parsedIP != nil && strings.Count(ip, ".") == 3
 }
 
+func performVLSM(ip net.IP, mask net.IPMask, hosts []int) ([]Subnet, error) {
+	var subnets []Subnet
+	for _, requiredHosts := range hosts {
+		requiredBits := int(math.Ceil(math.Log2(float64(requiredHosts + 2))))
+		maskOnes, _ := mask.Size()
+
+		availableBits := 32 - maskOnes
+		if availableBits < requiredBits {
+			return nil, fmt.Errorf("insufficient addresses for %d hosts", requiredHosts)
+		}
+
+		newMaskSize := 32 - requiredBits
+		subnet := Subnet{
+			IP:       ip,
+			MaskSize: newMaskSize,
+			Hosts:    requiredHosts,
+		}
+		subnets = append(subnets, subnet)
+
+		ip = calculateNextIP(ip, newMaskSize)
+		mask = net.CIDRMask(newMaskSize, 32)
+	}
+
+	return subnets, nil
+}
+
+func calculateNextIP(ip net.IP, newMaskSize int) net.IP {
+	ip = ip.To4()
+	shift := 32 - newMaskSize
+	ipInt := uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
+	nextIPInt := ipInt + (1 << shift)
+
+	nextIP := make(net.IP, 4)
+	nextIP[0] = byte(nextIPInt >> 24)
+	nextIP[1] = byte(nextIPInt >> 16)
+	nextIP[2] = byte(nextIPInt >> 8)
+	nextIP[3] = byte(nextIPInt)
+
+	return nextIP
+}
+
 func main() {
 	var ipv4 IPv4Value
 	var routesToSum string
+	var vlsm string
 
 	flag.Var(&ipv4, "ipv4", "IPv4 address with netmask (e.g., 192.168.1.1/24)")
 	info := flag.Bool("info", false, "IP information")
 	flag.StringVar(&routesToSum, "summary-route", "", "Networks / IP addresses to be summarized in a single route separated by commas")
+	flag.StringVar(&vlsm, "vlsm", "", "Number of hosts to subnet using Variable Length Subnet Mask (VLSM)")
 
 	flag.Parse()
 
@@ -212,5 +262,35 @@ func main() {
 		return
 	}
 
-	fmt.Println("Error: Insufficient Parameters")
+	if ipv4.ip != nil && ipv4.netmask != nil && vlsm != "" {
+		var hosts []int
+
+		for _, part := range strings.Split(vlsm, ",") {
+			host, err := strconv.Atoi(part)
+			if err != nil {
+				fmt.Println("Error converting to integer:", err)
+				return
+			}
+			hosts = append(hosts, host)
+		}
+
+		sort.Slice(hosts, func(i, j int) bool {
+			return hosts[i] > hosts[j]
+		})
+
+		subnets, err := performVLSM(ipv4.ip, ipv4.netmask, hosts)
+		if err != nil {
+			fmt.Println("Error performing VLSM:", err)
+			return
+		}
+
+		fmt.Println("Subnets with VLSM:")
+		for _, subnet := range subnets {
+			fmt.Printf("Subnet: %s/%-5d \tHosts: %d\n", subnet.IP, subnet.MaskSize, subnet.Hosts)
+		}
+
+		return
+	}
+
+	defer fmt.Println("Error: Insufficient Parameters")
 }
