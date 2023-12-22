@@ -177,17 +177,36 @@ func calculateNextIP(ip net.IP, newMaskSize int) net.IP {
 	return nextIP
 }
 
+func showUsage() {
+	fmt.Println("Usage: ip-calculator [options]")
+	fmt.Println("Options:")
+	flag.PrintDefaults()
+	fmt.Println("\nExamples:")
+	fmt.Println("Get help: \n\t./ip-calculator -h\n\t./ip-calculator --help")
+	fmt.Println("Get IPv4 Information: \n\t./ip-calculator -ipv4 192.168.0.0/24 --info")
+	fmt.Println("IPv4 Route Summarization: \n\t./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3")
+	fmt.Println("IPv4 VLSM Subnetting: \n\t./ip-calculator --ipv4=10.10.0.0/16 --vlsm 10,20,30,40")
+}
+
 func main() {
 	var ipv4 IPv4Value
 	var routesToSum string
 	var vlsm string
+	var showHelp bool
 
 	flag.Var(&ipv4, "ipv4", "IPv4 address with netmask (e.g., 192.168.1.1/24)")
-	info := flag.Bool("info", false, "IP information")
+	info := flag.Bool("info", false, "IP address information")
 	flag.StringVar(&routesToSum, "summary-route", "", "Networks / IP addresses to be summarized in a single route separated by commas")
 	flag.StringVar(&vlsm, "vlsm", "", "Number of hosts to subnet using Variable Length Subnet Mask (VLSM)")
+	flag.BoolVar(&showHelp, "h", false, "")
+	flag.BoolVar(&showHelp, "help", false, "Show info and documentation.")
 
 	flag.Parse()
+
+	if showHelp {
+		showUsage()
+		return
+	}
 
 	if ipv4.ip != nil && ipv4.netmask != nil && *info {
 		fmt.Printf("%-30s : %s\n", "IP Address", ipv4.ip)
@@ -292,5 +311,5 @@ func main() {
 		return
 	}
 
-	defer fmt.Println("Error: Insufficient Parameters")
+	defer fmt.Println("Error: Insufficient Parameters. See 'ip-calculator --help'")
 }

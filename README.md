@@ -32,6 +32,12 @@ Run the ip-calculator executable with appropriate command-line arguments to util
 
 ### Example
 
+Get help
+```bash
+./ip-calculator -h
+./ip-calculator --help
+```
+
 IPv4 Information
 ```bash
 ./ip-calculator -ipv4 192.168.0.0/24 --info
