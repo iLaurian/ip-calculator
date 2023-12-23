@@ -54,7 +54,7 @@ __NOTE__: The number of hosts should not include the broadcast and the network a
 
 IPv6 Information
 ```bash
-./ip-calculator.go --ipv6=2001:0db8::1/64 --info
+./ip-calculator --ipv6=2001:0db8::1/64 --info
 ```
 
 IPv6 Shortening
