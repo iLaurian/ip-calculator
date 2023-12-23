@@ -2,8 +2,6 @@
 
 The IP Calculator is a command-line tool written in Golang that assists in managing IPv4 addresses, subnetting, IPv6 shortening, and various networking operations.
 
-NOTE: This tool is a work in progress. Some features may not be working or non-existent.
-
 ## Features
 
 - **IPv4 Operations:**
