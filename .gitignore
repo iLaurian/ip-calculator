@@ -16,3 +16,6 @@
 
 # Go workspace file
 go.work
+
+# Nix build output
+result
