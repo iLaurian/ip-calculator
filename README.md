@@ -2,8 +2,6 @@
 
 The IP Calculator is a command-line tool written in Golang that assists in managing IPv4 addresses, subnetting, IPv6 shortening, and various networking operations.
 
-NOTE: This tool is a work in progress. Some features may not be working or non-existent.
-
 ## Features
 
 - **IPv4 Operations:**
@@ -53,6 +51,16 @@ IPv4 VLSM Subnetting
 ./ip-calculator --ipv4=10.10.0.0/16 --vlsm 10,20,30,40
 ```
 __NOTE__: The number of hosts should not include the broadcast and the network address. 
+
+IPv6 Information
+```bash
+./ip-calculator.go --ipv6=2001:0db8::1/64 --info
+```
+
+IPv6 Shortening
+```bash
+./ip-calculator -ipv6 2001:0db8:0000:0000:0000:0000:0000:0001/64 --compress
+```
 
 ### Command line flag syntax
 

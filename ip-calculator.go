@@ -19,6 +19,11 @@ type IPv4Value struct {
 	netmask net.IPMask
 }
 
+type IPv6Value struct {
+	ip      net.IP
+	netmask net.IPMask
+}
+
 type Subnet struct {
 	IP       net.IP
 	MaskSize int
@@ -54,6 +59,39 @@ func (v *IPv4Value) Set(value string) error {
 	v.ip = ip
 	v.netmask = mask
 
+	return nil
+}
+
+func (v *IPv6Value) String() string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/%s", v.ip.String(), v.netmask.String())
+}
+
+func (v *IPv6Value) Set(value string) error {
+	parts := strings.Split(value, "/")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid IPv6 address format. Must be in the form of 'address/mask'")
+	}
+
+	ip := net.ParseIP(parts[0])
+	if ip == nil {
+		return fmt.Errorf("invalid IPv6 address: %s", parts[0])
+	}
+
+	maskInt, err := strconv.Atoi(parts[1])
+	if err != nil {
+		panic(err)
+	}
+
+	mask := net.CIDRMask(maskInt, 128)
+	if mask == nil {
+		return fmt.Errorf("invalid mask: %s", parts[1])
+	}
+
+	v.ip = ip
+	v.netmask = mask
 	return nil
 }
 
@@ -177,6 +215,92 @@ func calculateNextIP(ip net.IP, newMaskSize int) net.IP {
 	return nextIP
 }
 
+func GetIPv6NetworkAddress(ipv6Address net.IP, subnetMask net.IPMask) net.IP {
+	if ipv6Address == nil || len(ipv6Address) != net.IPv6len ||
+		subnetMask == nil || len(subnetMask) != net.IPv6len {
+		return nil // Invalid IPv6 address or subnet mask
+	}
+
+	network := make(net.IP, net.IPv6len)
+	for i := 0; i < net.IPv6len; i++ {
+		network[i] = ipv6Address[i] & subnetMask[i]
+	}
+
+	return network
+}
+
+func DecompressIPv6(compressedAddress string) string {
+	ip := net.ParseIP(compressedAddress)
+	if ip == nil || ip.To16() == nil || ip.To4() != nil {
+		return ""
+	}
+
+	segments := strings.Split(compressedAddress, ":")
+	expandedSegments := make([]string, 0, 8)
+	doubleColonIdx := -1
+
+	for i, seg := range segments {
+		if seg == "" {
+			if doubleColonIdx != -1 {
+				return ""
+			}
+			doubleColonIdx = i
+		}
+	}
+
+	for i, seg := range segments {
+		if i == doubleColonIdx {
+			for j := 0; j < 8-len(segments)+1; j++ {
+				expandedSegments = append(expandedSegments, "0000")
+			}
+		} else {
+			expandedSegments = append(expandedSegments, ExpandIPv6Segment(seg))
+		}
+	}
+
+	return strings.Join(expandedSegments, ":")
+}
+
+func ExpandIPv6Segment(segment string) string {
+	expanded := segment
+	if len(segment) < 4 {
+		expanded = fmt.Sprintf("%s%s", strings.Repeat("0", 4-len(segment)), segment)
+	}
+	return expanded
+}
+
+func ConvertHexNetmaskToIPv6(netmask string) string {
+	if len(netmask) != 32 {
+		return ""
+	}
+
+	ipv6Blocks := make([]string, 8)
+	for i := 0; i < 8; i++ {
+		startIdx := i * 4
+		endIdx := startIdx + 4
+		ipv6Blocks[i] = netmask[startIdx:endIdx]
+	}
+
+	return strings.Join(ipv6Blocks, ":")
+}
+
+func IPv6IPRange(networkAddress net.IP, netmask net.IPMask) (net.IP, net.IP) {
+	if networkAddress == nil || netmask == nil || len(networkAddress) != len(netmask) {
+		return nil, nil
+	}
+
+	networkSize := len(networkAddress)
+	startIP := make(net.IP, networkSize)
+	endIP := make(net.IP, networkSize)
+
+	for i := 0; i < networkSize; i++ {
+		startIP[i] = networkAddress[i] & netmask[i]
+		endIP[i] = networkAddress[i] | ^netmask[i]
+	}
+
+	return startIP, endIP
+}
+
 func showUsage() {
 	fmt.Println("Usage: ip-calculator [options]")
 	fmt.Println("Options:")
@@ -186,6 +310,8 @@ func showUsage() {
 	fmt.Println("Get IPv4 Information: \n\t./ip-calculator -ipv4 192.168.0.0/24 --info")
 	fmt.Println("IPv4 Route Summarization: \n\t./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3")
 	fmt.Println("IPv4 VLSM Subnetting: \n\t./ip-calculator --ipv4=10.10.0.0/16 --vlsm 10,20,30,40")
+	fmt.Println("IPv6 Information: \n\t./ip-calculator.go -ipv6=2001:0db8::1/64 --info")
+	fmt.Println("IPv6 Shortening: \n\t./ip-calculator -ipv6 2001:0db8:0000:0000:0000:0000:0000:0001/64 --compress")
 }
 
 func main() {
@@ -193,11 +319,15 @@ func main() {
 	var routesToSum string
 	var vlsm string
 	var showHelp bool
+	var ipv6 IPv6Value
+	var ipv6Flag string
 
 	flag.Var(&ipv4, "ipv4", "IPv4 address with netmask (e.g., 192.168.1.1/24)")
 	info := flag.Bool("info", false, "IP address information")
 	flag.StringVar(&routesToSum, "summary-route", "", "Networks / IP addresses to be summarized in a single route separated by commas")
 	flag.StringVar(&vlsm, "vlsm", "", "Number of hosts to subnet using Variable Length Subnet Mask (VLSM)")
+	flag.StringVar(&ipv6Flag, "ipv6", "", "IPv6 address with mask (e.g., '2001:0db8:85a3:0000:0000:8a2e:0370:7334/64')")
+	compress := flag.Bool("compress", false, "Compress IPv6 Address")
 	flag.BoolVar(&showHelp, "h", false, "")
 	flag.BoolVar(&showHelp, "help", false, "Show info and documentation.")
 
@@ -307,6 +437,33 @@ func main() {
 		for _, subnet := range subnets {
 			fmt.Printf("Subnet: %s/%-5d \tHosts: %d\n", subnet.IP, subnet.MaskSize, subnet.Hosts)
 		}
+
+		return
+	}
+
+	if ipv6Flag != "" && *info {
+		ipv6.Set(ipv6Flag)
+
+		fmt.Println("IP Address      :", ipv6Flag)
+
+		fullAddress := DecompressIPv6(ipv6.ip.String())
+		fmt.Println("Full IP Address :", fullAddress)
+
+		fmt.Println("Netmask         :", ConvertHexNetmaskToIPv6(ipv6.netmask.String()))
+
+		networkAddress := GetIPv6NetworkAddress(ipv6.ip, ipv6.netmask)
+		fmt.Println("Network         :", networkAddress)
+
+		ipRangeStart, ipRangeEnd := IPv6IPRange(networkAddress, ipv6.netmask)
+		fmt.Println("IP Range Start  :", ipRangeStart)
+		fmt.Println("IP Range End    :", ipRangeEnd)
+
+		return
+	}
+
+	if ipv6Flag != "" && *compress {
+		ipv6.Set(ipv6Flag)
+		fmt.Println("Compressed IPv6 Address: ", ipv6.ip)
 
 		return
 	}
