@@ -24,6 +24,16 @@ cd ip-calculator
 go build
 ```
 
+Alternatively, build using Nix:
+```bash
+nix build github:ilaurian/ip-calculator
+nix run github:ilaurian/ip-calculator
+
+# or
+git clone https://github.com/iLaurian/ip-calculator.git
+nix build .
+```
+
 ## Usage
 
 Run the ip-calculator executable with appropriate command-line arguments to utilize different functionalities:
