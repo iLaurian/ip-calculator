@@ -54,6 +54,16 @@ IPv4 VLSM Subnetting
 ```
 __NOTE__: The number of hosts should not include the broadcast and the network address. 
 
+IPv6 Information
+```bash
+./ip-calculator.go --ipv6=2001:0db8::1/64 --info
+```
+
+IPv6 Shortening
+```bash
+./ip-calculator -ipv6 2001:0db8:0000:0000:0000:0000:0000:0001/64 --compress
+```
+
 ### Command line flag syntax
 
 The following forms are permitted:
