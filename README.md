@@ -53,7 +53,7 @@ IPv4 Information
 
 IPv4 Route Summarization
 ```bash
-./ip-calculator --summary-route 10.0.0.0,10.0.0.1,10.0.0.2,10.0.0.3
+./ip-calculator --summary-route 10.10.0.0,10.20.0.0,10.30.0.0,10.40.0.0
 ```
 
 IPv4 VLSM Subnetting
