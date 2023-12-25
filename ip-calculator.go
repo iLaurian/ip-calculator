@@ -427,7 +427,7 @@ func main() {
 			return hosts[i] > hosts[j]
 		})
 
-		subnets, err := performVLSM(ipv4.ip, ipv4.netmask, hosts)
+		subnets, err := performVLSM(ipv4.GetNetworkAddress(), ipv4.netmask, hosts)
 		if err != nil {
 			fmt.Println("Error performing VLSM:", err)
 			return
